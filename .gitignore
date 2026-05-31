@@ -1,0 +1,29 @@
+# ─── C++ build artifacts ──────────────────────────────────────────────────────
+/build/
+*.o
+*.obj
+*.exe
+
+# ─── Node / frontend ──────────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+
+# ─── Algorithm result outputs ─────────────────────────────────────────────────
+# Regenerable from the C++ optimizer; some exceed GitHub's 100 MB limit
+# (e.g. output/ackley_result.json ~103 MB). A couple of small showcase PNGs
+# are kept under docs/assets/ instead.
+/output/
+
+# ─── Source archive (already extracted into design_handoff_mad_explorer/) ──────
+MAD_WEBSITE.zip
+
+# ─── dev-workflow working memory (never committed) ────────────────────────────
+changes_version.md
+
+# ─── OS / editor ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+*.log

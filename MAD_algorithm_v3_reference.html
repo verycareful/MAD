@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAD Algorithm — Implementation Reference</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&display=swap');
+
+  :root {
+    --bg: #0f0e0c;
+    --surface: #161412;
+    --surface2: #1e1b17;
+    --border: #2a2620;
+    --border2: #333028;
+    --accent: #c8a96e;
+    --accent-dim: #7a6540;
+    --text: #e2d8c8;
+    --text-dim: #8a8070;
+    --text-mid: #b0a090;
+    --phase1: #7eb8d4;
+    --phase2: #d47e7e;
+    --phase3: #7ed4a0;
+    --phase4: #d4b87e;
+    --code-bg: #0a0908;
+    --tag-bg: rgba(200,169,110,0.1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.75;
+    padding: 2rem 1rem 4rem;
+  }
+
+  /* LAYOUT */
+  .wrap { max-width: 820px; margin: 0 auto; }
+
+  /* HEADER */
+  .header {
+    padding: 3rem 0 2rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2.5rem;
+  }
+
+  .algo-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent-dim);
+    margin-bottom: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .algo-tag::before {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 1px;
+    background: var(--accent-dim);
+  }
+
+  h1 {
+    font-size: 2.4rem;
+    font-weight: 600;
+    color: var(--accent);
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+  }
+
+  .tagline {
+    font-size: 1rem;
+    color: var(--text-dim);
+    font-style: italic;
+    margin-bottom: 1.2rem;
+  }
+
+  .meta-row {
+    display: flex;
+    gap: 2rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+  }
+
+  .meta-row span { color: var(--accent); }
+
+  /* TOC */
+  .toc {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 1.2rem 1.6rem;
+    margin-bottom: 3rem;
+    border-radius: 2px;
+  }
+
+  .toc-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent-dim);
+    margin-bottom: 0.8rem;
+  }
+
+  .toc ol {
+    list-style: none;
+    counter-reset: toc;
+  }
+
+  .toc li {
+    counter-increment: toc;
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    padding: 0.15rem 0;
+    display: flex;
+    gap: 0.6rem;
+    align-items: baseline;
+  }
+
+  .toc li::before {
+    content: counter(toc, decimal-leading-zero);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--accent-dim);
+    flex-shrink: 0;
+  }
+
+  /* SECTIONS */
+  .section {
+    margin-bottom: 3.5rem;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.4rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--accent-dim);
+    letter-spacing: 0.1em;
+    flex-shrink: 0;
+  }
+
+  h2 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.01em;
+  }
+
+  h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-dim);
+    margin: 1.6rem 0 0.6rem;
+  }
+
+  p {
+    color: var(--text-mid);
+    margin-bottom: 0.8rem;
+    font-size: 0.97rem;
+  }
+
+  /* GIVEN / DEF BLOCKS */
+  .given {
+    background: rgba(200,169,110,0.05);
+    border-left: 2px solid var(--accent-dim);
+    padding: 0.7rem 1.2rem;
+    margin: 0.6rem 0;
+    font-size: 0.93rem;
+    color: var(--text-mid);
+  }
+
+  /* PARAM TABLE */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.88rem;
+  }
+
+  thead tr {
+    border-bottom: 1px solid var(--border2);
+  }
+
+  th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-dim);
+    text-align: left;
+    padding: 0.4rem 1rem 0.4rem 0;
+    font-weight: 400;
+  }
+
+  td {
+    padding: 0.55rem 1rem 0.55rem 0;
+    border-bottom: 1px solid rgba(42,38,32,0.6);
+    color: var(--text-dim);
+    vertical-align: top;
+  }
+
+  td:first-child {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--accent);
+    white-space: nowrap;
+    padding-right: 1.5rem;
+  }
+
+  td:nth-child(2) {
+    color: var(--text-mid);
+    font-style: italic;
+  }
+
+  /* DATA STRUCT */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1.2rem 1.5rem;
+    margin: 1rem 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 2;
+    color: var(--text-dim);
+    overflow-x: auto;
+  }
+
+  .code-block .k { color: var(--phase1); }
+  .code-block .v { color: var(--accent); }
+  .code-block .c { color: var(--text-dim); font-style: italic; }
+  .code-block .t { color: var(--phase3); }
+
+  /* PHASE BLOCKS */
+  .phase {
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    margin: 1.2rem 0;
+    overflow: hidden;
+  }
+
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.55rem 1.2rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .p1 .phase-header { background: rgba(126,184,212,0.1); color: var(--phase1); border-bottom: 1px solid rgba(126,184,212,0.15); }
+  .p2 .phase-header { background: rgba(212,126,126,0.1); color: var(--phase2); border-bottom: 1px solid rgba(212,126,126,0.15); }
+  .p3 .phase-header { background: rgba(126,212,160,0.1); color: var(--phase3); border-bottom: 1px solid rgba(126,212,160,0.15); }
+  .p4 .phase-header { background: rgba(212,184,126,0.1); color: var(--phase4); border-bottom: 1px solid rgba(212,184,126,0.15); }
+
+  .dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .p1 .dot { background: var(--phase1); }
+  .p2 .dot { background: var(--phase2); }
+  .p3 .dot { background: var(--phase3); }
+  .p4 .dot { background: var(--phase4); }
+
+  .phase-body { padding: 1.1rem 1.4rem; }
+
+  /* EQ */
+  .eq {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 0.9rem 1.4rem;
+    margin: 0.9rem 0;
+    text-align: center;
+    overflow-x: auto;
+  }
+
+  .cond {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    margin: 0.7rem 0;
+  }
+
+  .cond strong { color: var(--text); font-weight: 600; }
+
+  /* NOTES */
+  .note {
+    font-size: 0.87rem;
+    color: var(--text-dim);
+    font-style: italic;
+    margin-top: 0.8rem;
+    padding: 0.6rem 1rem;
+    border-left: 2px solid rgba(200,185,110,0.25);
+    background: rgba(200,185,110,0.04);
+  }
+
+  .note strong { color: var(--accent); font-style: normal; }
+
+  .impl-note {
+    font-size: 0.87rem;
+    color: var(--text-dim);
+    margin-top: 0.8rem;
+    padding: 0.6rem 1rem;
+    border-left: 2px solid rgba(126,184,212,0.25);
+    background: rgba(126,184,212,0.04);
+  }
+
+  .impl-note strong { color: var(--phase1); }
+
+  /* GUARANTEE */
+  .guarantee {
+    background: rgba(126,212,160,0.05);
+    border: 1px solid rgba(126,212,160,0.2);
+    border-radius: 2px;
+    padding: 1rem 1.4rem;
+    margin-top: 1rem;
+    font-size: 0.92rem;
+    color: var(--text-dim);
+  }
+
+  .guarantee strong { color: var(--phase3); }
+
+  /* COMPLEXITY TABLE */
+  .complexity-row td:nth-child(2) {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  /* PSEUDOCODE */
+  .pseudo {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1.4rem 1.6rem;
+    margin: 1rem 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.77rem;
+    line-height: 2;
+    overflow-x: auto;
+  }
+
+  .pseudo .kw { color: var(--phase2); }
+  .pseudo .fn { color: var(--phase1); }
+  .pseudo .cm { color: var(--text-dim); font-style: italic; }
+  .pseudo .va { color: var(--accent); }
+  .pseudo .op { color: var(--phase3); }
+  .pseudo .ind1 { padding-left: 1.5rem; display: block; }
+  .pseudo .ind2 { padding-left: 3rem; display: block; }
+  .pseudo .ind3 { padding-left: 4.5rem; display: block; }
+  .pseudo .ind4 { padding-left: 6rem; display: block; }
+
+  mjx-container { color: var(--text) !important; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="algo-tag">optimization algorithm</div>
+    <h1>Minimum Ascent Descent</h1>
+    <div class="tagline">A complete global optimizer via structured loss landscape traversal</div>
+    <div class="meta-row">
+      <div>Acronym: <span>MAD</span></div>
+      <div>Status: <span>Draft — Implementation Reference</span></div>
+      <div>Version: <span>v3</span></div>
+    </div>
+  </div>
+
+  <!-- TOC -->
+  <div class="toc">
+    <div class="toc-title">Contents</div>
+    <ol>
+      <li>Problem Statement</li>
+      <li>Setup & Definitions</li>
+      <li>Hyperparameters</li>
+      <li>Data Structures</li>
+      <li>Algorithm — Phase by Phase</li>
+      <li>Pseudocode</li>
+      <li>Complexity Analysis</li>
+      <li>Completeness Guarantee</li>
+      <li>Open Problems</li>
+    </ol>
+  </div>
+
+  <!-- 1. PROBLEM STATEMENT -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2>Problem Statement</h2>
+    </div>
+    <p>Standard gradient-based optimizers follow the steepest descent at every step. When they land in a local minimum, they stop — with no mechanism to determine whether a deeper minimum exists elsewhere in the landscape. Current escape strategies (noise injection, momentum, learning rate schedules) are blind: they run at all times as a precaution, without knowing whether the optimizer is stuck.</p>
+    <p>MAD addresses this by treating the loss landscape as a traversable topology. It uses structured ascent — climbing out via the shallowest available path — to systematically discover and compare all reachable local minima, returning the global minimum upon exhaustion of the landscape.</p>
+  </div>
+
+  <!-- 2. SETUP -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2>Setup & Definitions</h2>
+    </div>
+
+    <div class="given">
+      <strong>Given:</strong> A differentiable loss function \( f : \mathbb{R}^d \rightarrow \mathbb{R} \) over a finite landscape.
+    </div>
+
+    <h3>Definitions</h3>
+    <div class="given">\( \mathcal{V} = \{\theta^*_1, \theta^*_2, \ldots\} \) — set of visited local minima. Initially empty.</div>
+    <div class="given">\( \theta^*_{\text{best}} \) — running best minimum. Updated whenever a new minimum with lower loss is found.</div>
+    <div class="given">\( \mathcal{P} \) — stack of active pass points. Each pass point stores its position and a priority queue of candidate descent directions.</div>
+    <div class="given">\( D(\mathcal{V}, \theta_n) \) — dynamic exclusion set. The set of unit vectors pointing from current position \(\theta_n\) toward each known minimum. Recomputed at every step.</div>
+
+    <div class="eq">
+      \[ D(\mathcal{V}, \theta_n) = \left\{ \frac{\theta^*_k - \theta_n}{\|\theta^*_k - \theta_n\|} : \theta^*_k \in \mathcal{V} \right\} \]
+    </div>
+  </div>
+
+  <!-- 3. HYPERPARAMETERS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2>Hyperparameters</h2>
+    </div>
+    <p>All hyperparameters are tunable. Optimal values vary significantly across domains — a chemistry simulation has very different landscape geometry than a neural network loss surface.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Symbol</th>
+          <th>Name</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>\( \gamma \)</td>
+          <td>Learning rate</td>
+          <td>Step size for both descent and ascent phases</td>
+        </tr>
+        <tr>
+          <td>\( \epsilon \)</td>
+          <td>Convergence threshold</td>
+          <td>Gradient norm below which a minimum is declared: \( \|\nabla f(\theta_n)\| < \epsilon \)</td>
+        </tr>
+        <tr>
+          <td>\( \delta \)</td>
+          <td>Proximity radius</td>
+          <td>Distance from a known minimum at which trajectory checking activates</td>
+        </tr>
+        <tr>
+          <td>\( \alpha \)</td>
+          <td>Trend window scale</td>
+          <td>Scales the trajectory history window proportionally to distance: \( w = \lfloor \alpha \cdot \|\theta_n - \theta^*_k\| \rfloor \). Empirically \( \alpha \approx 0.2\text{–}0.25 \) from geometric reasoning.</td>
+        </tr>
+        <tr>
+          <td>\( \tau \)</td>
+          <td>Alignment threshold</td>
+          <td>Dot product value above which the trajectory is considered to be converging toward a known minimum</td>
+        </tr>
+        <tr>
+          <td>\( \lambda \)</td>
+          <td>Early stopping threshold</td>
+          <td>Optional. If \( f(\theta^*_k) < \lambda \), terminate immediately. Trades completeness guarantee for speed. Omit for full exhaustive search.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 4. DATA STRUCTURES -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2>Data Structures</h2>
+    </div>
+
+    <div class="code-block">
+<span class="k">Node</span> {<br>
+&nbsp;&nbsp;<span class="v">position</span>: θ*_k         <span class="c">// parameter vector of the minimum</span><br>
+&nbsp;&nbsp;<span class="v">loss</span>: f(θ*_k)         <span class="c">// loss value at this minimum</span><br>
+}<br><br>
+<span class="k">PassPoint</span> {<br>
+&nbsp;&nbsp;<span class="v">position</span>: p           <span class="c">// parameter vector at the pass</span><br>
+&nbsp;&nbsp;<span class="v">priority_queue</span>: [v*]  <span class="c">// candidate descent directions, sorted descending by distance from V</span><br>
+}<br><br>
+<span class="k">V</span>: Set&lt;Node&gt;            <span class="c">// visited minima</span><br>
+<span class="k">P</span>: Stack&lt;PassPoint&gt;     <span class="c">// active pass points for backtracking</span><br>
+<span class="k">θ*_best</span>: Node           <span class="c">// current best minimum found</span><br><br>
+<span class="t">// The traversal tree is implicit:</span><br>
+<span class="t">// Nodes = minima in V</span><br>
+<span class="t">// Edges = descents between pass points and minima</span><br>
+<span class="t">// Branches = pass points in P</span>
+    </div>
+
+    <div class="impl-note">
+      <strong>Implementation note:</strong> The priority queue at each pass point orders candidate directions by their distance from all known minima in \(\mathcal{V}\) — farthest first. When a direction is aborted mid-descent, the next direction is popped from the queue automatically.
+    </div>
+  </div>
+
+  <!-- 5. PHASES -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2>Algorithm — Phase by Phase</h2>
+    </div>
+
+    <div class="phase p1">
+      <div class="phase-header"><span class="dot"></span>Phase 1 — Steepest Descent</div>
+      <div class="phase-body">
+        <div class="eq">\[ \theta_{n+1} = \theta_n - \gamma \nabla f(\theta_n) \]</div>
+
+        <div class="cond">At every step, for each \( \theta^*_k \in \mathcal{V} \): if \( \|\theta_n - \theta^*_k\| < \delta \), compute trend window:</div>
+        <div class="eq">\[ w = \lfloor \alpha \cdot \|\theta_n - \theta^*_k\| \rfloor \]</div>
+
+        <div class="cond">Check if trajectory over the last \( w \) steps is converging toward \( \theta^*_k \):</div>
+        <div class="eq">
+          \[ \frac{\theta_n - \theta_{n-w}}{\|\theta_n - \theta_{n-w}\|} \cdot \frac{\theta^*_k - \theta_n}{\|\theta^*_k - \theta_n\|} > \tau \]
+        </div>
+
+        <div class="cond"><strong>If converging → abort descent.</strong> See backtracking note below.</div>
+
+        <div class="cond" style="margin-top:1rem">
+          <strong>If \( \|\nabla f(\theta_n)\| < \epsilon \)</strong> without abort → minimum reached.<br>
+          Record \( \theta^*_k = \theta_n \), add to \( \mathcal{V} \).<br>
+          If \( f(\theta^*_k) < f(\theta^*_{\text{best}}) \), update \( \theta^*_{\text{best}} \).<br>
+          If \( \lambda \) is set and \( f(\theta^*_k) < \lambda \), <strong>terminate early.</strong><br>
+          Otherwise → proceed to Phase 2.
+        </div>
+
+        <div class="note">
+          <strong>Backtracking (default):</strong> On abort, return to the most recent pass point in \(\mathcal{P}\) and pop the next best candidate direction from its priority queue. Proceed to Phase 1 from that direction.<br><br>
+          <strong>Lazy ascent (alternative):</strong> On abort, continue ascending from the current position rather than backtracking. Cheaper computationally but geometrically less principled. Recommended for high-dimensional or expensive-to-evaluate landscapes. This is a tunable design choice — make it a flag in implementation.
+        </div>
+      </div>
+    </div>
+
+    <div class="phase p2">
+      <div class="phase-header"><span class="dot"></span>Phase 2 — Minimum Ascent</div>
+      <div class="phase-body">
+        <div class="cond">Recompute \( D(\mathcal{V}, \theta_n) \) at every step. Ascend via the shallowest valid direction:</div>
+        <div class="eq">
+          \[
+            \theta_{n+1} = \theta_n + \gamma \cdot \underset{\|v\|=1}{\arg\min} \left[ \nabla f(\theta_n)^\top v \right]
+            \quad \text{subject to} \quad v \notin D(\mathcal{V}, \theta_n)
+          \]
+        </div>
+
+        <div class="cond">At each ascent step, scan for candidate descent directions — all unit vectors \( v^* \) such that:</div>
+        <div class="eq">
+          \[ \nabla f(\theta_n)^\top v^* < 0 \quad \text{and} \quad v^* \notin D(\mathcal{V}, \theta_n) \]
+        </div>
+
+        <div class="cond">
+          <strong>If one or more \( v^* \) exist → pass point reached.</strong><br>
+          Store current position as pass point \( p \) in \(\mathcal{P}\).<br>
+          Build priority queue of all valid \( v^* \), ordered by distance from \(\mathcal{V}\) — farthest first.<br>
+          Take the best \( v^* \) → proceed to Phase 1.
+        </div>
+      </div>
+    </div>
+
+    <div class="phase p3">
+      <div class="phase-header"><span class="dot"></span>Phase 3 — Backtracking</div>
+      <div class="phase-body">
+        <div class="cond">Triggered when a pass point's priority queue is exhausted — no valid descent directions remain.</div>
+        <div class="cond">Pop the current pass point from \(\mathcal{P}\). Return to the previous pass point in the stack.</div>
+        <div class="cond">Pop the next best candidate direction from that pass point's priority queue → proceed to Phase 1.</div>
+        <div class="cond"><strong>If \(\mathcal{P}\) is entirely empty → proceed to Phase 4.</strong></div>
+      </div>
+    </div>
+
+    <div class="phase p4">
+      <div class="phase-header"><span class="dot"></span>Phase 4 — Termination</div>
+      <div class="phase-body">
+        <div class="cond">All pass points exhausted. Every reachable descent has been explored or aborted as trending toward \(\mathcal{V}\).</div>
+        <div class="cond"><strong>Return \( \theta^*_{\text{best}} \)</strong> as the global minimum.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. PSEUDOCODE -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2>Pseudocode</h2>
+    </div>
+
+    <div class="pseudo">
+<span class="kw">function</span> <span class="fn">MAD</span>(<span class="va">f</span>, <span class="va">θ_init</span>, <span class="va">γ</span>, <span class="va">ε</span>, <span class="va">δ</span>, <span class="va">α</span>, <span class="va">τ</span>, <span class="va">λ</span>=None, <span class="va">lazy</span>=False):<br>
+<span class="ind1"><span class="va">V</span> ← {}  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cm">// visited minima</span></span>
+<span class="ind1"><span class="va">P</span> ← []  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cm">// pass point stack</span></span>
+<span class="ind1"><span class="va">θ_best</span> ← None</span>
+<span class="ind1"><span class="va">θ</span> ← <span class="va">θ_init</span></span>
+<span class="ind1"><span class="va">history</span> ← [<span class="va">θ</span>]</span>
+<br>
+<span class="ind1"><span class="kw">loop</span>:</span>
+<span class="ind2"><span class="cm">// ── PHASE 1: Steepest Descent ──</span></span>
+<span class="ind2"><span class="kw">while</span> ‖∇f(<span class="va">θ</span>)‖ ≥ <span class="va">ε</span>:</span>
+<span class="ind3"><span class="kw">for each</span> <span class="va">θ*_k</span> <span class="kw">in</span> <span class="va">V</span>:</span>
+<span class="ind4"><span class="kw">if</span> ‖<span class="va">θ</span> - <span class="va">θ*_k</span>‖ &lt; <span class="va">δ</span>:</span>
+<span class="ind4">&nbsp;&nbsp;<span class="va">w</span> ← ⌊<span class="va">α</span> · ‖<span class="va">θ</span> - <span class="va">θ*_k</span>‖⌋</span>
+<span class="ind4">&nbsp;&nbsp;<span class="kw">if</span> <span class="fn">trajectory_converging</span>(<span class="va">history</span>, <span class="va">w</span>, <span class="va">θ*_k</span>, <span class="va">τ</span>):</span>
+<span class="ind4">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> <span class="va">lazy</span>: <span class="kw">goto</span> PHASE_2</span>
+<span class="ind4">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">else</span>: <span class="kw">goto</span> PHASE_3</span>
+<span class="ind3"><span class="va">θ</span> ← <span class="va">θ</span> - <span class="va">γ</span> · ∇f(<span class="va">θ</span>)</span>
+<span class="ind3"><span class="fn">history.append</span>(<span class="va">θ</span>)</span>
+<br>
+<span class="ind2"><span class="cm">// minimum reached</span></span>
+<span class="ind2"><span class="fn">V.add</span>(<span class="va">θ</span>)</span>
+<span class="ind2"><span class="kw">if</span> <span class="va">θ_best</span> is None <span class="kw">or</span> f(<span class="va">θ</span>) &lt; f(<span class="va">θ_best</span>): <span class="va">θ_best</span> ← <span class="va">θ</span></span>
+<span class="ind2"><span class="kw">if</span> <span class="va">λ</span> is not None <span class="kw">and</span> f(<span class="va">θ</span>) &lt; <span class="va">λ</span>: <span class="kw">return</span> <span class="va">θ_best</span></span>
+<br>
+<span class="ind2">PHASE_2:</span>
+<span class="ind2"><span class="cm">// ── PHASE 2: Minimum Ascent ──</span></span>
+<span class="ind2"><span class="kw">while</span> True:</span>
+<span class="ind3"><span class="va">D</span> ← <span class="fn">exclusion_set</span>(<span class="va">V</span>, <span class="va">θ</span>)</span>
+<span class="ind3"><span class="va">candidates</span> ← [<span class="va">v*</span> : ∇f(<span class="va">θ</span>)ᵀ<span class="va">v*</span> &lt; 0 <span class="kw">and</span> <span class="va">v*</span> ∉ <span class="va">D</span>]</span>
+<span class="ind3"><span class="kw">if</span> <span class="fn">len</span>(<span class="va">candidates</span>) &gt; 0:</span>
+<span class="ind4"><span class="va">pq</span> ← <span class="fn">priority_queue</span>(<span class="va">candidates</span>, key=<span class="fn">dist_from_V</span>(<span class="va">V</span>))</span>
+<span class="ind4"><span class="fn">P.push</span>({ position: <span class="va">θ</span>, queue: <span class="va">pq</span> })</span>
+<span class="ind4"><span class="va">θ</span> ← <span class="va">θ</span> + <span class="va">γ</span> · <span class="fn">pq.pop_best</span>()</span>
+<span class="ind4"><span class="kw">break</span>  <span class="cm">// → back to Phase 1</span></span>
+<span class="ind3"><span class="va">v_ascend</span> ← <span class="fn">argmin_v</span>(∇f(<span class="va">θ</span>)ᵀ<span class="va">v</span>, <span class="va">v</span> ∉ <span class="va">D</span>)</span>
+<span class="ind3"><span class="va">θ</span> ← <span class="va">θ</span> + <span class="va">γ</span> · <span class="va">v_ascend</span></span>
+<span class="ind3"><span class="fn">history.append</span>(<span class="va">θ</span>)</span>
+<br>
+<span class="ind2">PHASE_3:</span>
+<span class="ind2"><span class="cm">// ── PHASE 3: Backtrack ──</span></span>
+<span class="ind2"><span class="kw">while</span> <span class="fn">len</span>(<span class="va">P</span>) &gt; 0:</span>
+<span class="ind3"><span class="va">pass_pt</span> ← <span class="fn">P.peek</span>()</span>
+<span class="ind3"><span class="kw">if</span> <span class="fn">len</span>(<span class="va">pass_pt.queue</span>) &gt; 0:</span>
+<span class="ind4"><span class="va">θ</span> ← <span class="va">pass_pt.position</span> + <span class="va">γ</span> · <span class="fn">pass_pt.queue.pop</span>()</span>
+<span class="ind4"><span class="kw">break</span>  <span class="cm">// → back to Phase 1</span></span>
+<span class="ind3"><span class="fn">P.pop</span>()</span>
+<br>
+<span class="ind2"><span class="cm">// ── PHASE 4: Terminate ──</span></span>
+<span class="ind2"><span class="kw">if</span> <span class="fn">len</span>(<span class="va">P</span>) == 0: <span class="kw">return</span> <span class="va">θ_best</span></span>
+    </div>
+
+    <div class="impl-note">
+      <strong>trajectory_converging(history, w, θ*_k, τ):</strong> Returns true if the dot product of the net displacement over the last <em>w</em> steps with the unit vector toward θ*_k exceeds τ. Requires at least <em>w</em> entries in history.
+    </div>
+  </div>
+
+  <!-- 7. COMPLEXITY -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <h2>Complexity Analysis</h2>
+    </div>
+
+    <p>Let \( m \) = number of local minima, \( n_d \) = average descent steps per minimum, \( n_a \) = average ascent steps per pass, \( b \) = average branching factor at each pass point, \( d \) = dimensionality, \( |\Theta| \) = total parameter space size.</p>
+
+    <table class="complexity-row">
+      <thead>
+        <tr>
+          <th>Case</th>
+          <th>Complexity</th>
+          <th>Condition</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Best case</td>
+          <td>\( O(n_d \cdot d) \)</td>
+          <td>Early stopping \(\lambda\) set; first descent lands below threshold</td>
+        </tr>
+        <tr>
+          <td>Average case</td>
+          <td>\( O(\log |\Theta| \cdot d) \)</td>
+          <td>Each visited minimum eliminates a neighborhood, pruning large portions of remaining space. Conjectured — to be validated empirically.</td>
+        </tr>
+        <tr>
+          <td>Worst case (MAD)</td>
+          <td>\( O(m \cdot (n_d + n_a) \cdot b \cdot d) \)</td>
+          <td>Global minimum is the last found; all minima visited</td>
+        </tr>
+        <tr>
+          <td>Worst case (Brute force)</td>
+          <td>\( O(|\Theta| \cdot d) \)</td>
+          <td>Every point in parameter space evaluated</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note">
+      <strong>Key insight:</strong> MAD worst case is strictly better than brute force since \( m \ll |\Theta| \) in any real landscape. MAD operates only on minima and the paths between them — flat regions, slopes, and ridges are traversed but never exhaustively sampled. Without \(\lambda\), best and worst case are equivalent — MAD always exhausts the full landscape before terminating. The completeness guarantee and inability to stop early are two sides of the same coin.
+    </div>
+  </div>
+
+  <!-- 8. GUARANTEE -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">08</span>
+      <h2>Completeness Guarantee</h2>
+    </div>
+
+    <div class="guarantee">
+      <strong>Theorem (informal):</strong> On a finite landscape, MAD is guaranteed to visit every reachable local minimum and return the global minimum, provided \(\lambda\) is not set.<br><br>
+      <strong>Argument:</strong> No minimum is ever revisited (trajectory check + \(\mathcal{V}\) membership). Every pass point exhausts all valid candidate directions before backtracking. The only termination condition is an empty pass point stack, which implies every reachable descent has been explored or correctly aborted. Therefore \(\theta^*_{\text{best}}\) at termination is the global minimum over all reachable minima.
+    </div>
+
+    <div class="note" style="margin-top:1rem">
+      <strong>Note on reachability:</strong> The tightened dynamic exclusion \( D(\mathcal{V}, \theta_n) \) combined with the backtracking tree ensures that all minima connected via any pass are reachable. Formal proof of universal reachability is left as future work.
+    </div>
+  </div>
+
+  <!-- 9. OPEN PROBLEMS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">09</span>
+      <h2>Open Problems</h2>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Problem</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>Formal proof of average case \( O(\log |\Theta|) \)</td>
+          <td>Requires assumptions about local minima distribution. To be validated empirically first.</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Formal proof of universal reachability</td>
+          <td>Conjectured to follow from the backtracking tree structure and dynamic exclusion set.</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>Efficient computation of shallowest ascent direction in high dimensions</td>
+          <td>Constrained argmin over unit sphere excluding \( D(\mathcal{V}, \theta_n) \). May require approximation.</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>Lazy ascent vs backtracking — formal comparison</td>
+          <td>Completeness of lazy variant under what conditions? Currently a tunable flag.</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>Empirical benchmarking vs Adam, SGD, basin hopping</td>
+          <td>Primary validation target. Test on standard benchmark loss landscapes.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>

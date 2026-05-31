@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAD Explorer</title>
+<style>
+:root {
+  --bg:        #0a0a0c;
+  --surface:   #13121a;
+  --border:    #2a2630;
+  --accent:    #c8a96e;
+  --text:      #e2d8c8;
+  --dim:       #5a5460;
+  --descent:   #7eb8d4;
+  --ascent:    #d47e7e;
+  --backtrack: #b07ed4;
+  --minimum:   #f0c060;
+  --passpoint: #ffffff;
+  --current:   #00ffcc;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Courier New', Courier, monospace;
+  height: 100vh;
+  overflow: hidden;
+  user-select: none;
+}
+
+#app {
+  display: grid;
+  grid-template-rows: 40px 1fr;
+  height: 100vh;
+}
+
+/* ── Header ── */
+header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+header h1 {
+  font-size: 12px;
+  font-weight: normal;
+  color: var(--accent);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.phase-buttons { display: flex; gap: 3px; }
+
+.phase-btn {
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--dim);
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.phase-btn:hover { border-color: var(--dim); color: var(--text); }
+.phase-btn.active[data-phase="descent"]   { background: var(--descent);   color: #000; border-color: var(--descent); }
+.phase-btn.active[data-phase="ascent"]    { background: var(--ascent);    color: #000; border-color: var(--ascent); }
+.phase-btn.active[data-phase="backtrack"] { background: var(--backtrack); color: #000; border-color: var(--backtrack); }
+
+#step-count { font-size: 10px; color: var(--dim); white-space: nowrap; margin-left: auto; }
+
+.hdr-btn {
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  border-radius: 2px;
+}
+.hdr-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Layout ── */
+#main-layout {
+  display: grid;
+  grid-template-columns: 1fr 250px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+#grid-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+}
+
+canvas {
+  display: block;
+  cursor: crosshair;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* ── Sidebar ── */
+#sidebar {
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 7px 8px;
+  flex-shrink: 0;
+}
+
+.panel h3 {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--accent);
+  margin-bottom: 7px;
+}
+
+/* Position panel */
+#pos-display { font-size: 13px; margin-bottom: 4px; }
+
+#height-bar-wrap {
+  height: 5px;
+  background: #0f0e15;
+  border-radius: 2px;
+  margin-bottom: 4px;
+  overflow: hidden;
+}
+#height-bar { height: 100%; border-radius: 2px; transition: width 0.1s; }
+#height-val { font-size: 10px; color: var(--dim); }
+
+/* Neighbor grid */
+#neighbor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+}
+
+.nb-cell {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  padding: 2px;
+  position: relative;
+  transition: filter 0.1s;
+  border: 1px solid transparent;
+}
+.nb-cell.clickable { cursor: pointer; }
+.nb-cell.clickable:hover { filter: brightness(1.4); border-color: rgba(255,255,255,0.3); }
+.nb-cell.current { outline: 2px solid var(--current); outline-offset: -1px; }
+.nb-cell.oob { background: #0d0d10 !important; }
+
+.nb-dir  { font-size: 7px; color: rgba(255,255,255,0.45); line-height: 1; }
+.nb-val  { font-weight: bold; color: #fff; font-size: 9px; text-shadow: 0 0 4px #000; line-height: 1.2; }
+.nb-arr  { font-size: 9px; line-height: 1; }
+
+/* Action buttons */
+.act-btn {
+  display: block;
+  width: 100%;
+  padding: 5px 7px;
+  margin-bottom: 3px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 2px;
+  transition: all 0.1s;
+}
+.act-btn:last-child { margin-bottom: 0; }
+.act-btn:hover { background: #1c1b26; border-color: var(--accent); }
+
+.key-chip {
+  display: inline-block;
+  background: #1e1d28;
+  border: 1px solid #3a3848;
+  border-radius: 2px;
+  padding: 0 4px;
+  font-size: 8px;
+  margin-right: 5px;
+  color: var(--dim);
+}
+
+/* Lists */
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 5px;
+  border-radius: 2px;
+  font-size: 9px;
+  margin-bottom: 2px;
+  background: #0f0e15;
+  border: 1px solid #1e1d26;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.list-item:last-child { margin-bottom: 0; }
+.list-item:hover { background: #1c1b26; border-color: var(--passpoint); }
+.list-item.here { border-color: var(--accent); }
+.list-item.min-item { cursor: default; }
+.list-item.min-item:hover { background: #0f0e15; border-color: #1e1d26; }
+
+.pp-dot  { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--passpoint); flex-shrink: 0; }
+.min-star { color: var(--minimum); flex-shrink: 0; font-size: 10px; }
+.ml-auto { margin-left: auto; color: var(--dim); }
+
+.empty { font-size: 9px; color: var(--dim); font-style: italic; }
+
+/* Key guide */
+.key-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  margin-bottom: 6px;
+}
+.kg-cell {
+  background: #0f0e15;
+  border: 1px solid #1e1d26;
+  border-radius: 2px;
+  padding: 3px 2px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--text);
+}
+.kg-cell span {
+  display: block;
+  font-size: 7px;
+  color: var(--dim);
+  margin-top: 1px;
+}
+.kg-center { background: transparent; border-color: transparent; }
+
+.key-extra {
+  font-size: 8px;
+  color: var(--dim);
+  line-height: 1.9;
+}
+.key-extra b { color: var(--text); }
+
+/* Toast */
+#toast {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  padding: 6px 14px;
+  border-radius: 3px;
+  font-size: 11px;
+  opacity: 0;
+  transition: opacity 0.18s;
+  pointer-events: none;
+  z-index: 200;
+  white-space: nowrap;
+}
+#toast.show { opacity: 1; }
+
+/* Scrollbar styling */
+#sidebar::-webkit-scrollbar { width: 4px; }
+#sidebar::-webkit-scrollbar-track { background: var(--bg); }
+#sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <h1>MAD Explorer</h1>
+    <div class="phase-buttons">
+      <button class="phase-btn active" data-phase="descent">▼ Phase 1: Descent</button>
+      <button class="phase-btn" data-phase="ascent">▲ Phase 2: Ascent</button>
+      <button class="phase-btn" data-phase="backtrack">↩ Phase 3: Backtrack</button>
+    </div>
+    <span id="step-count">Steps: 0</span>
+    <button class="hdr-btn" id="btn-new">↺ New</button>
+  </header>
+
+  <div id="main-layout">
+    <div id="grid-wrapper">
+      <canvas id="grid"></canvas>
+    </div>
+
+    <aside id="sidebar">
+
+      <!-- Position -->
+      <div class="panel">
+        <h3>Position</h3>
+        <div id="pos-display">—</div>
+        <div id="height-bar-wrap"><div id="height-bar"></div></div>
+        <div id="height-val">—</div>
+      </div>
+
+      <!-- Neighbors -->
+      <div class="panel">
+        <h3>Neighbors</h3>
+        <div id="neighbor-grid"></div>
+      </div>
+
+      <!-- Actions -->
+      <div class="panel">
+        <h3>Actions</h3>
+        <button class="act-btn" id="btn-mark"><span class="key-chip">M</span>★ Mark Minimum</button>
+        <button class="act-btn" id="btn-pass"><span class="key-chip">P</span>◉ Add Pass Point</button>
+        <button class="act-btn" id="btn-back"><span class="key-chip">B</span>↩ Backtrack</button>
+      </div>
+
+      <!-- Pass Points -->
+      <div class="panel">
+        <h3>Pass Points <span id="pp-count" style="color:var(--dim)">0</span></h3>
+        <div id="pp-list"><div class="empty">None yet</div></div>
+      </div>
+
+      <!-- Minima -->
+      <div class="panel">
+        <h3>Minima Found <span id="min-count" style="color:var(--dim)">0</span></h3>
+        <div id="min-list"><div class="empty">None yet</div></div>
+      </div>
+
+      <!-- Key guide -->
+      <div class="panel">
+        <h3>Keyboard</h3>
+        <div class="key-grid">
+          <div class="kg-cell">Q<span>NW</span></div>
+          <div class="kg-cell">W<span>N</span></div>
+          <div class="kg-cell">E<span>NE</span></div>
+          <div class="kg-cell">A<span>W</span></div>
+          <div class="kg-cell kg-center"></div>
+          <div class="kg-cell">D<span>E</span></div>
+          <div class="kg-cell">Z<span>SW</span></div>
+          <div class="kg-cell">X<span>S</span></div>
+          <div class="kg-cell">C<span>SE</span></div>
+        </div>
+        <div class="key-extra">
+          <b>↑↓←→</b> — cardinal move<br>
+          <b>M</b> — mark minimum<br>
+          <b>P</b> — add pass point<br>
+          <b>B</b> — backtrack (most recent)<br>
+          <b>1 2 3</b> — set phase<br>
+          <b>R</b> — new game
+        </div>
+      </div>
+
+    </aside>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ─── Constants ────────────────────────────────────────────────────────────────
+const W = 100, H = 100;
+
+const PHASE = { descent: 'descent', ascent: 'ascent', backtrack: 'backtrack' };
+const PHASE_COLOR = {
+  descent:   '#7eb8d4',
+  ascent:    '#d47e7e',
+  backtrack: '#b07ed4',
+};
+
+// Inferno colormap stops [r, g, b] normalized 0–1
+const INFERNO = [
+  [0.001462, 0.000466, 0.013866],
+  [0.087411, 0.044556, 0.224353],
+  [0.232077, 0.031918, 0.370708],
+  [0.366625, 0.050934, 0.424837],
+  [0.490015, 0.067383, 0.424152],
+  [0.608253, 0.090204, 0.391671],
+  [0.719814, 0.128087, 0.322967],
+  [0.808524, 0.188941, 0.210761],
+  [0.876424, 0.265930, 0.105954],
+  [0.928329, 0.360677, 0.051705],
+  [0.965024, 0.476288, 0.021778],
+  [0.987299, 0.594508, 0.034955],
+  [0.991702, 0.714645, 0.108882],
+  [0.985371, 0.830880, 0.211364],
+  [0.988362, 0.998364, 0.644924],
+];
+
+function inferno(t) {
+  t = Math.max(0, Math.min(1, t));
+  const n = INFERNO.length - 1;
+  const i = t * n;
+  const lo = Math.floor(i);
+  const f  = i - lo;
+  const hi = Math.min(lo + 1, n);
+  const a  = INFERNO[lo], b = INFERNO[hi];
+  return [
+    ((a[0] + (b[0] - a[0]) * f) * 255) | 0,
+    ((a[1] + (b[1] - a[1]) * f) * 255) | 0,
+    ((a[2] + (b[2] - a[2]) * f) * 255) | 0,
+  ];
+}
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let landscape;     // Float64Array [W * H]
+let revealed;      // Set<number> — flat cell indices
+let pos;           // {x, y}
+let path;          // [{x, y, phase}]  full trajectory
+let passPoints;    // [{x, y, pathLen, id}]
+let minima;        // [{x, y, h, id}]
+let currentPhase;
+let stepCount;
+let isAnimating;
+let nextId;
+
+// ─── Landscape ────────────────────────────────────────────────────────────────
+function generateLandscape() {
+  const grid = new Float64Array(W * H);
+
+  // Sum of random Gaussian bumps
+  for (let b = 0; b < 24; b++) {
+    const cx  = Math.random() * W;
+    const cy  = Math.random() * H;
+    const neg = Math.random() < 0.4;
+    const amp = (neg ? -1 : 1) * (0.5 + Math.random() * 1.5);
+    const sig = 5 + Math.random() * 20;
+    const inv = 1 / (2 * sig * sig);
+
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const dx = x - cx, dy = y - cy;
+        grid[y * W + x] += amp * Math.exp(-(dx * dx + dy * dy) * inv);
+      }
+    }
+  }
+
+  // Normalize to [0, 1]
+  let mn = Infinity, mx = -Infinity;
+  for (const v of grid) { if (v < mn) mn = v; if (v > mx) mx = v; }
+  const rng = mx - mn || 1;
+  for (let i = 0; i < grid.length; i++) grid[i] = (grid[i] - mn) / rng;
+  return grid;
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+function init() {
+  landscape    = generateLandscape();
+  revealed     = new Set();
+  pos          = { x: Math.floor(W / 2), y: Math.floor(H / 2) };
+  path         = [{ ...pos, phase: PHASE.descent }];
+  passPoints   = [];
+  minima       = [];
+  currentPhase = PHASE.descent;
+  stepCount    = 0;
+  isAnimating  = false;
+  nextId       = 1;
+
+  revealAround(pos.x, pos.y);
+  updatePhaseUI();
+  render();
+  updateSidebar();
+}
+
+function revealAround(x, y) {
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const nx = x + dx, ny = y + dy;
+      if (nx >= 0 && nx < W && ny >= 0 && ny < H)
+        revealed.add(ny * W + nx);
+    }
+  }
+}
+
+// ─── Movement ─────────────────────────────────────────────────────────────────
+function move(dx, dy) {
+  if (isAnimating) return;
+  const nx = pos.x + dx, ny = pos.y + dy;
+  if (nx < 0 || nx >= W || ny < 0 || ny >= H) { toast('Edge of world!'); return; }
+
+  pos = { x: nx, y: ny };
+  revealAround(nx, ny);
+  path.push({ ...pos, phase: currentPhase });
+  stepCount++;
+
+  render();
+  updateSidebar();
+}
+
+// ─── Actions ─────────────────────────────────────────────────────────────────
+function markMinimum() {
+  if (isAnimating) return;
+  if (minima.some(m => m.x === pos.x && m.y === pos.y)) {
+    toast('Already marked as minimum!'); return;
+  }
+  const h = landscape[pos.y * W + pos.x];
+  minima.push({ x: pos.x, y: pos.y, h, id: nextId++ });
+  toast(`★ Minimum #${minima.length} marked  (h = ${h.toFixed(3)})`);
+  render(); updateSidebar();
+}
+
+function addPassPoint() {
+  if (isAnimating) return;
+  if (passPoints.some(p => p.x === pos.x && p.y === pos.y)) {
+    toast('Pass point already here!'); return;
+  }
+  passPoints.push({ x: pos.x, y: pos.y, pathLen: path.length, id: nextId++ });
+  toast(`◉ Pass point #${passPoints.length} added`);
+  render(); updateSidebar();
+}
+
+async function backtrack(ppIdx) {
+  if (isAnimating) return;
+  if (passPoints.length === 0) { toast('No pass points!'); return; }
+
+  const idx    = ppIdx !== undefined ? ppIdx : passPoints.length - 1;
+  const target = passPoints[idx];
+  if (pos.x === target.x && pos.y === target.y) { toast('Already at this pass point!'); return; }
+
+  isAnimating = true;
+  const prevPhase = currentPhase;
+  currentPhase = PHASE.backtrack;
+  updatePhaseUI();
+
+  // Walk backward along path history to the pass point
+  const stepsAfterPP = path.slice(target.pathLen);
+  const backPath = [...stepsAfterPP].reverse();
+
+  for (const step of backPath) {
+    pos = { x: step.x, y: step.y };
+    path.push({ ...pos, phase: PHASE.backtrack });
+    stepCount++;
+    render();
+    updateSidebar();
+    await sleep(55);
+  }
+
+  pos = { x: target.x, y: target.y };
+  isAnimating = false;
+
+  render();
+  updateSidebar();
+  toast(`↩ Backtracked to pass point #${idx + 1}`);
+}
+
+// ─── Rendering ────────────────────────────────────────────────────────────────
+function cellSize() {
+  const wrapper = document.getElementById('grid-wrapper');
+  const aw = wrapper.clientWidth  - 20;
+  const ah = wrapper.clientHeight - 20;
+  return Math.max(3, Math.floor(Math.min(aw / W, ah / H)));
+}
+
+function render() {
+  const canvas = document.getElementById('grid');
+  const CELL   = cellSize();
+  const cw     = CELL * W;
+  const ch     = CELL * H;
+
+  canvas.width  = cw;
+  canvas.height = ch;
+
+  const ctx = canvas.getContext('2d');
+
+  // ── Cells via ImageData ──────────────────────────────────────────────
+  const img  = ctx.createImageData(cw, ch);
+  const data = img.data;
+
+  for (let cy = 0; cy < H; cy++) {
+    for (let cx = 0; cx < W; cx++) {
+      const flat = cy * W + cx;
+      let r, g, b;
+
+      if (revealed.has(flat)) {
+        [r, g, b] = inferno(landscape[flat]);
+        // Dim cells not immediately adjacent to current position
+        const dist = Math.max(Math.abs(cx - pos.x), Math.abs(cy - pos.y));
+        if (dist > 1) { r = (r * 0.65) | 0; g = (g * 0.65) | 0; b = (b * 0.65) | 0; }
+      } else {
+        r = 10; g = 9; b = 13;
+      }
+
+      for (let py = 0; py < CELL; py++) {
+        const row = (cy * CELL + py) * cw;
+        for (let px = 0; px < CELL; px++) {
+          const pi = (row + cx * CELL + px) * 4;
+          data[pi]     = r;
+          data[pi + 1] = g;
+          data[pi + 2] = b;
+          data[pi + 3] = 255;
+        }
+      }
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+
+  // ── Path ─────────────────────────────────────────────────────────────
+  if (path.length > 1) {
+    ctx.lineWidth = Math.max(1, CELL * 0.18);
+    ctx.lineCap   = 'round';
+    for (let i = 1; i < path.length; i++) {
+      const p0 = path[i - 1], p1 = path[i];
+      ctx.strokeStyle = PHASE_COLOR[p1.phase] + 'bb';
+      ctx.beginPath();
+      ctx.moveTo((p0.x + 0.5) * CELL, (p0.y + 0.5) * CELL);
+      ctx.lineTo((p1.x + 0.5) * CELL, (p1.y + 0.5) * CELL);
+      ctx.stroke();
+    }
+  }
+
+  // ── Minima ───────────────────────────────────────────────────────────
+  minima.forEach((m, i) => {
+    const cx = (m.x + 0.5) * CELL;
+    const cy = (m.y + 0.5) * CELL;
+    drawStar(ctx, cx, cy, '#f0c060', Math.max(5, CELL * 0.72));
+    ctx.fillStyle = '#0a0a0c';
+    ctx.font      = `bold ${Math.max(6, CELL * 0.55)}px monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(i + 1, cx, cy);
+  });
+
+  // ── Pass points ──────────────────────────────────────────────────────
+  passPoints.forEach((pp, i) => {
+    const cx = (pp.x + 0.5) * CELL;
+    const cy = (pp.y + 0.5) * CELL;
+    const r  = Math.max(3, CELL * 0.4);
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle   = 'rgba(255,255,255,0.12)';
+    ctx.fill();
+    ctx.strokeStyle = '#ffffffcc';
+    ctx.lineWidth   = Math.max(1, CELL * 0.12);
+    ctx.stroke();
+    if (CELL >= 7) {
+      ctx.fillStyle = '#ffffff';
+      ctx.font      = `bold ${Math.max(6, CELL * 0.5)}px monospace`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(i + 1, cx, cy);
+    }
+  });
+
+  // ── Start marker ─────────────────────────────────────────────────────
+  const sp = path[0];
+  if (sp.x !== pos.x || sp.y !== pos.y) {
+    const spx = (sp.x + 0.5) * CELL, spy = (sp.y + 0.5) * CELL;
+    const sr  = Math.max(3, CELL * 0.38);
+    ctx.fillStyle = '#c8a96e';
+    ctx.beginPath();
+    ctx.moveTo(spx,        spy - sr);
+    ctx.lineTo(spx + sr,   spy + sr);
+    ctx.lineTo(spx - sr,   spy + sr);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // ── Current cell ─────────────────────────────────────────────────────
+  const lw = Math.max(1.5, CELL * 0.14);
+  ctx.strokeStyle = '#00ffcc';
+  ctx.lineWidth   = lw;
+  ctx.strokeRect(pos.x * CELL + lw / 2, pos.y * CELL + lw / 2,
+                 CELL - lw, CELL - lw);
+
+  // Glow dot at center
+  ctx.beginPath();
+  ctx.arc((pos.x + 0.5) * CELL, (pos.y + 0.5) * CELL, Math.max(1.5, CELL * 0.12), 0, Math.PI * 2);
+  ctx.fillStyle = '#00ffcc';
+  ctx.fill();
+}
+
+function drawStar(ctx, cx, cy, color, outerR) {
+  const innerR = outerR * 0.42;
+  const spikes = 5;
+  let   rot    = -Math.PI / 2;
+  const step   = Math.PI / spikes;
+  ctx.beginPath();
+  for (let i = 0; i < spikes * 2; i++) {
+    const r = i % 2 === 0 ? outerR : innerR;
+    ctx[i === 0 ? 'moveTo' : 'lineTo'](cx + Math.cos(rot) * r, cy + Math.sin(rot) * r);
+    rot += step;
+  }
+  ctx.closePath();
+  ctx.fillStyle   = color;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+  ctx.lineWidth   = 0.8;
+  ctx.stroke();
+}
+
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+function updateSidebar() {
+  const h = landscape[pos.y * W + pos.x];
+  const [r, g, b] = inferno(h);
+
+  document.getElementById('pos-display').textContent = `(${pos.x}, ${pos.y})`;
+  document.getElementById('height-val').textContent  = `h = ${h.toFixed(4)}`;
+  document.getElementById('step-count').textContent  = `Steps: ${stepCount}`;
+
+  const bar = document.getElementById('height-bar');
+  bar.style.width      = `${h * 100}%`;
+  bar.style.background = `rgb(${r},${g},${b})`;
+
+  buildNeighborGrid(h);
+  buildPassList();
+  buildMinList();
+}
+
+function buildNeighborGrid(currentH) {
+  const dirs = [
+    { dx:-1, dy:-1, label:'NW', key:'Q' },
+    { dx: 0, dy:-1, label:'N',  key:'W' },
+    { dx: 1, dy:-1, label:'NE', key:'E' },
+    { dx:-1, dy: 0, label:'W',  key:'A' },
+    { dx: 0, dy: 0, label:'●',  key:''  },
+    { dx: 1, dy: 0, label:'E',  key:'D' },
+    { dx:-1, dy: 1, label:'SW', key:'Z' },
+    { dx: 0, dy: 1, label:'S',  key:'X' },
+    { dx: 1, dy: 1, label:'SE', key:'C' },
+  ];
+
+  const grid = document.getElementById('neighbor-grid');
+  grid.innerHTML = '';
+
+  dirs.forEach(({ dx, dy, label }) => {
+    const el = document.createElement('div');
+    el.className = 'nb-cell';
+
+    const isCenter = dx === 0 && dy === 0;
+    const nx = pos.x + dx, ny = pos.y + dy;
+    const inBounds = nx >= 0 && nx < W && ny >= 0 && ny < H;
+
+    if (isCenter) {
+      const [r, g, b] = inferno(currentH);
+      el.style.background = `rgb(${r},${g},${b})`;
+      el.classList.add('current');
+      el.innerHTML = `<span class="nb-dir">●</span><span class="nb-val">${currentH.toFixed(2)}</span>`;
+    } else if (!inBounds) {
+      el.classList.add('oob');
+      el.innerHTML = `<span class="nb-dir">${label}</span><span class="nb-val" style="color:#333">—</span>`;
+    } else {
+      const h = landscape[ny * W + nx];
+      const [r, g, b] = inferno(h);
+      el.style.background = `rgb(${r},${g},${b})`;
+      el.classList.add('clickable');
+
+      const diff = h - currentH;
+      const arr  = diff < -0.004 ? '↓' : diff > 0.004 ? '↑' : '—';
+      const ac   = diff < -0.004 ? '#7eb8d4' : diff > 0.004 ? '#d47e7e' : '#888';
+
+      el.innerHTML = `
+        <span class="nb-dir">${label}</span>
+        <span class="nb-val">${h.toFixed(2)}</span>
+        <span class="nb-arr" style="color:${ac}">${arr}</span>`;
+      el.addEventListener('click', () => move(dx, dy));
+    }
+
+    grid.appendChild(el);
+  });
+}
+
+function buildPassList() {
+  const container = document.getElementById('pp-list');
+  document.getElementById('pp-count').textContent = passPoints.length;
+
+  if (passPoints.length === 0) {
+    container.innerHTML = '<div class="empty">None yet</div>'; return;
+  }
+
+  container.innerHTML = '';
+  passPoints.forEach((pp, i) => {
+    const el = document.createElement('div');
+    el.className = 'list-item' + (pp.x === pos.x && pp.y === pos.y ? ' here' : '');
+    el.innerHTML = `
+      <div class="pp-dot"></div>
+      <span>#${i + 1} @ (${pp.x}, ${pp.y})</span>
+      <span class="ml-auto">h=${landscape[pp.y * W + pp.x].toFixed(2)}</span>`;
+    el.addEventListener('click', () => backtrack(i));
+    container.appendChild(el);
+  });
+}
+
+function buildMinList() {
+  const container = document.getElementById('min-list');
+  document.getElementById('min-count').textContent = minima.length;
+
+  if (minima.length === 0) {
+    container.innerHTML = '<div class="empty">None yet</div>'; return;
+  }
+
+  container.innerHTML = '';
+  minima.forEach((m, i) => {
+    const el = document.createElement('div');
+    el.className = 'list-item min-item';
+    el.innerHTML = `
+      <span class="min-star">★</span>
+      <span>#${i + 1} @ (${m.x}, ${m.y})</span>
+      <span class="ml-auto" style="color:var(--minimum)">h=${m.h.toFixed(3)}</span>`;
+    container.appendChild(el);
+  });
+}
+
+function updatePhaseUI() {
+  document.querySelectorAll('.phase-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.phase === currentPhase);
+  });
+}
+
+// ─── Canvas click ─────────────────────────────────────────────────────────────
+document.getElementById('grid').addEventListener('click', e => {
+  if (isAnimating) return;
+  const canvas = e.currentTarget;
+  const rect   = canvas.getBoundingClientRect();
+  const CELL   = cellSize();
+  const gx     = Math.floor((e.clientX - rect.left)  / CELL);
+  const gy     = Math.floor((e.clientY - rect.top)   / CELL);
+  const dx     = gx - pos.x, dy = gy - pos.y;
+
+  if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1 && (dx !== 0 || dy !== 0)) {
+    move(dx, dy);
+    return;
+  }
+
+  // Clicked a pass point marker?
+  const ppIdx = passPoints.findIndex(pp => pp.x === gx && pp.y === gy);
+  if (ppIdx !== -1) { backtrack(ppIdx); return; }
+
+  toast('Move to adjacent cells only (or click a pass point)');
+});
+
+// ─── Keyboard ─────────────────────────────────────────────────────────────────
+const KEY_MAP = {
+  'q': [-1,-1], 'w': [0,-1], 'e': [1,-1],
+  'a': [-1, 0],              'd': [1, 0],
+  'z': [-1, 1], 'x': [0, 1], 'c': [1, 1],
+  'arrowup':    [0,-1], 'arrowdown':  [0, 1],
+  'arrowleft': [-1, 0], 'arrowright': [1, 0],
+};
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  const key = e.key.toLowerCase();
+
+  const dir = KEY_MAP[key];
+  if (dir) { e.preventDefault(); move(dir[0], dir[1]); return; }
+
+  if (key === 'm') { markMinimum(); return; }
+  if (key === 'p') { addPassPoint(); return; }
+  if (key === 'b') { backtrack(); return; }
+  if (key === '1') { currentPhase = PHASE.descent;   updatePhaseUI(); return; }
+  if (key === '2') { currentPhase = PHASE.ascent;    updatePhaseUI(); return; }
+  if (key === '3') { currentPhase = PHASE.backtrack; updatePhaseUI(); return; }
+  if (key === 'r') {
+    if (confirm('Start a new random game?')) init();
+  }
+});
+
+// ─── Phase buttons ────────────────────────────────────────────────────────────
+document.querySelectorAll('.phase-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentPhase = btn.dataset.phase;
+    updatePhaseUI();
+  });
+});
+
+// ─── Action buttons ───────────────────────────────────────────────────────────
+document.getElementById('btn-mark').addEventListener('click', markMinimum);
+document.getElementById('btn-pass').addEventListener('click', addPassPoint);
+document.getElementById('btn-back').addEventListener('click', () => backtrack());
+document.getElementById('btn-new').addEventListener('click', () => {
+  if (confirm('Start a new random game?')) init();
+});
+
+// ─── Resize ───────────────────────────────────────────────────────────────────
+window.addEventListener('resize', render);
+
+// ─── Utilities ────────────────────────────────────────────────────────────────
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

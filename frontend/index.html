@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAD Explorer v2</title>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <h1>MAD Explorer</h1>
+    <div class="divider"></div>
+    <div class="phase-buttons">
+      <button class="phase-btn active" data-phase="descent">▼ Descent</button>
+      <button class="phase-btn" data-phase="ascent">▲ Ascent</button>
+      <button class="phase-btn" data-phase="backtrack">↩ Backtrack</button>
+    </div>
+    <div class="divider"></div>
+    <div class="hdr-group">
+      <button class="hdr-btn icon-btn" id="btn-undo" title="Undo (Ctrl+Z)">↶</button>
+      <button class="hdr-btn icon-btn" id="btn-redo" title="Redo (Ctrl+Shift+Z)">↷</button>
+    </div>
+    <div class="hdr-group">
+      <button class="hdr-btn icon-btn" id="btn-zoom-out" title="Zoom out (−)">−</button>
+      <button class="hdr-btn icon-btn" id="btn-fit" title="Fit (F)">⤢</button>
+      <button class="hdr-btn icon-btn" id="btn-zoom-in" title="Zoom in (+)">+</button>
+    </div>
+    <span id="step-count">Steps: 0</span>
+    <span id="seed-label">seed -</span>
+    <div class="divider"></div>
+    <div class="hdr-group" title="Colormap">
+      <button class="cmap-btn active" data-cmap="rdbu">Red–Blue</button>
+      <button class="cmap-btn" data-cmap="mono">Mono</button>
+    </div>
+    <div class="divider"></div>
+    <div class="hdr-group" title="Theme">
+      <button class="theme-btn active" data-theme="dark">◐ Dark</button>
+      <button class="theme-btn" data-theme="light">◑ Light</button>
+    </div>
+    <div class="divider"></div>
+    <button class="hdr-btn" id="btn-seed" title="Load a landscape by seed">⌖ Seed</button>
+    <button class="hdr-btn" id="btn-new" title="New random landscape">↺ New</button>
+  </header>
+
+  <div id="main-layout">
+    <div id="grid-wrapper">
+      <canvas id="grid"></canvas>
+      <div class="map-hint">scroll = zoom · drag = pan · click adjacent = move · F = fit</div>
+    </div>
+
+    <aside id="sidebar">
+
+      <div class="panel">
+        <h3>Position</h3>
+        <div id="pos-display">-</div>
+        <div id="height-bar-wrap"><div id="height-bar"></div></div>
+        <div id="height-val">-</div>
+      </div>
+
+      <div class="panel">
+        <h3>Neighbors <span class="ml" id="nb-range">-</span></h3>
+        <div id="neighbor-host"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Actions</h3>
+        <button class="act-btn" id="btn-mark"><span class="key-chip">M</span>★ Mark Minimum</button>
+        <button class="act-btn" id="btn-pass"><span class="key-chip">P</span>◉ Add Pass Point</button>
+        <button class="act-btn" id="btn-back"><span class="key-chip">B</span>↩ Backtrack (latest)</button>
+      </div>
+
+      <div class="panel">
+        <h3>Pass Points <span id="pp-count" style="color:var(--dim)">0</span></h3>
+        <div id="pp-list"><div class="empty">None yet</div></div>
+      </div>
+
+      <div class="panel">
+        <h3>Minima Found <span id="min-count" style="color:var(--dim)">0</span></h3>
+        <div id="min-list"><div class="empty">None yet</div></div>
+      </div>
+
+      <div class="panel">
+        <h3>Session</h3>
+        <textarea id="session-desc" placeholder="Describe your intent for this run - what are you trying to show the algorithm? (saved with the export)"></textarea>
+        <div class="io-row">
+          <button class="act-btn" id="btn-export" title="Download structured intent trace">⤓ JSON</button>
+          <button class="act-btn" id="btn-png" title="Download annotated map image">⤓ PNG</button>
+          <button class="act-btn" id="btn-import" title="Load a previously exported trace">⤒ Import</button>
+        </div>
+        <input type="file" id="file-input" accept="application/json" style="display:none">
+      </div>
+
+      <div class="panel">
+        <h3>Keyboard</h3>
+        <div class="key-grid">
+          <div class="kg-cell">Q<span>NW</span></div><div class="kg-cell">W<span>N</span></div><div class="kg-cell">E<span>NE</span></div>
+          <div class="kg-cell">A<span>W</span></div><div class="kg-cell kg-center"></div><div class="kg-cell">D<span>E</span></div>
+          <div class="kg-cell">Z<span>SW</span></div><div class="kg-cell">X<span>S</span></div><div class="kg-cell">C<span>SE</span></div>
+        </div>
+        <div class="key-extra">
+          <b>↑↓←→</b> cardinal move &nbsp; <b>M</b> minimum &nbsp; <b>P</b> pass point<br>
+          <b>B</b> backtrack &nbsp; <b>1 2 3</b> phase &nbsp; <b>F</b> fit &nbsp; <b>+ −</b> zoom<br>
+          <b>Ctrl+Z</b> undo &nbsp; <b>Ctrl+Shift+Z</b> redo
+        </div>
+      </div>
+
+    </aside>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
