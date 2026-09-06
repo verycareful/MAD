@@ -1,16 +1,20 @@
 # MAD - Minimum Ascent Descent
-
 <!-- Languages -->
 [![C++](https://img.shields.io/badge/C%2B%2B-17-00599C?style=flat-square&logo=cplusplus&logoColor=white)](https://isocpp.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
-
-<!-- Tools -->
-[![Vite](https://img.shields.io/badge/Vite-6+-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
+<!-- Build & tooling -->
 [![CMake](https://img.shields.io/badge/CMake-3.16+-064F8C?style=flat-square&logo=cmake&logoColor=white)](https://cmake.org/)
-
+[![Vite](https://img.shields.io/badge/Vite-6.0-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Vitest](https://img.shields.io/badge/Vitest-2.1-6E9F18?style=flat-square&logo=vitest&logoColor=white)](https://vitest.dev/)
+<!-- Python libraries -->
+[![NumPy](https://img.shields.io/badge/NumPy-013243?style=flat-square&logo=numpy&logoColor=white)](https://numpy.org/)
+[![Matplotlib](https://img.shields.io/badge/Matplotlib-11557C?style=flat-square)](https://matplotlib.org/)
+<!-- Deployment -->
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-deployed-222222?style=flat-square&logo=githubpages&logoColor=white)](https://verycareful.github.io/MAD/)
 <!-- Project -->
 [![Version](https://img.shields.io/badge/version-0.1.0.0--alpha-c8a96e?style=flat-square)](CHANGELOG.md)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-A42E2B?style=flat-square)](LICENSE)
 [![Status: Active](https://img.shields.io/badge/Status-Active-brightgreen?style=flat-square)](.)
 
 MAD is a global optimization algorithm that treats a loss surface as traversable
@@ -120,3 +124,20 @@ docs/                         plans + screenshots
 Notes: `build/` and `output/` are gitignored (the latter is regenerable and some
 result JSONs exceed GitHub's 100 MB limit). `changes_version.md`, when present, is
 gitignored working memory.
+
+## License
+
+Copyright © 2026 Sricharan Suresh (github.com/verycareful)
+
+MAD is licensed under the **[GNU Affero General Public License v3.0](https://www.gnu.org/licenses/agpl-3.0.html)**.
+You may use, study, modify and redistribute it freely. Any derivative work must
+also be released under AGPL-3.0, including its source. Unlike the plain GPL, the
+AGPL extends that obligation to network use: if you run a modified version and
+let others interact with it over a network, you must offer them the source of
+your modified version.
+
+That clause is live here, not theoretical. MAD Explorer is deployed to GitHub
+Pages, so anyone hosting a modified Explorer is distributing over a network and
+owes recipients the modified source.
+
+See the [LICENSE](LICENSE) file for the full license text.

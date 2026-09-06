@@ -16,8 +16,10 @@ frontend/.vite/
 # are kept under docs/assets/ instead.
 /output/
 
-# ─── Source archive (already extracted into design_handoff_mad_explorer/) ──────
-MAD_WEBSITE.zip
+# ─── Source archives (extracted copies are what get tracked, not the archive) ──
+# No .zip is tracked anywhere in this repo, so ignore them as a class rather
+# than naming each one as it appears.
+*.zip
 
 # ─── dev-workflow working memory (never committed) ────────────────────────────
 changes_version.md
